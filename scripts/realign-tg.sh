@@ -20,6 +20,6 @@ export PYTHONPATH=$CODE
 FDIR=/nas/material/users/tg/work/elisa/y3-eval/root.y3eval/${lang}/expanded/lrlp/set0/data/translation/found
 VECT_DIR=/nas/material/users/tg/work/elisa/rpi
 
-python3 $CODE/realigner.py -f mcss -fd $FDIR -l $lang \
-  -se $VECT_DIR/vectors-$lang.txt -ee $VECT_DIR/vectors-eng.txt --threshold 0.01 --threads 18
-
+python3 $CODE/realigner.py -f "charlen,toklen,copypatn,ascii,mcss" -fd $FDIR -l $lang \
+  -se $VECT_DIR/vectors-$lang.txt -ee $VECT_DIR/vectors-eng.txt  \
+  --threshold 0.01 --threads 18 -o 'sentence_alignment-tg'
