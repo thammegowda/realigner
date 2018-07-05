@@ -3,6 +3,7 @@ import logging
 
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
+from typing import List
 
 logger = logging.getLogger()
 logging.basicConfig(format='%(asctime)s: %(levelname)s: %(message)s')
@@ -85,11 +86,16 @@ class MCSS:
         tgt_vectors = bow(tgt_sents, self.tgt_vec)
         return float(cosine_similarity(src_vectors, tgt_vectors))
 
+    def doc_score(self, src_sents: List[str], tgt_sents: List[str]) -> float:
+        """Compute the similarity between two documents i.e. two lists of sentences"""
+        # FIXME: implement this
+        raise Exception('Not Implemented')
+
 
 if __name__ == '__main__':
 
-    p_src_vec = 'rpi/si.fasttext.sg.dim300.min5.vec'
-    p_tgt_vec = 'rpi/en.fasttext.sg.dim300.min5.vec'
+    p_src_vec = 'rpi/vectors-si.txt'
+    p_tgt_vec = 'rpi/vectors-en.txt'
     mcss = MCSS(p_src_vec, p_tgt_vec)
 
     s = 'උස අඩි 8 ක් පමණ වන මෙම අලියාගේ වයස අවුරුදු 25 ක් පමණ වන බව සඳහන් .'
