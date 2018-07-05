@@ -28,6 +28,11 @@ class Doc:
     def to_recs(self):
         return [(self.doc_id, seg_id, text) for seg_id, text in self.get_segs()]
 
+    def to_rec_dicts(self):
+        for i, (seg_id, text) in enumerate(self.get_segs()):
+            uid = f'{self.doc_id}.{seg_id}'
+            yield {'id': uid, 'doc_id': self.doc_id, 'seg_id': seg_id, 'text': text, 'lang': self.lang, 'position': i}
+
 
 def read_ltf_docs(path):
     with open(path):
@@ -61,10 +66,28 @@ def write_out(docs, out):
             out.write('\n')
 
 
+def index_docs(docs, solr_url, corpus, buffer_size=2000):
+    from solr import Solr
+    solr = Solr(solr_url)
+    docs = (seg for doc in docs for seg in doc.to_rec_dicts())
+
+    def set_corpus(doc):
+        doc['corpus'] = corpus
+        return doc
+    docs = map(set_corpus, docs)
+    solr.post_iterator(docs, buffer_size=buffer_size)
+
+
 if __name__ == '__main__':
     p = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     p.add_argument('-d', '--dir', type=str, help='Input directory having LTF files')
     p.add_argument('-o', '--out', type=argparse.FileType('w'), default=sys.stdout, help='Output file path')
+    p.add_argument('-s', '--solr-url', type=str, help='Index to Solr. (optional)')
+    p.add_argument('-c', '--corpus', type=str, help='Tag all the documents with this string in solr index')
     args = vars(p.parse_args())
     docs = read_ltf_dir(args['dir'])
-    write_out(docs, args['out'])
+    if 'solr_url' in args:
+        assert 'corpus' in args, '--corpus is needed'
+        index_docs(docs, args['solr_url'], args['corpus'])
+    else:
+        write_out(docs, args['out'])
