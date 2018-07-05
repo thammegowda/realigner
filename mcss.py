@@ -87,21 +87,44 @@ class MCSS:
         tgt_vectors = bow(tgt_sents, self.tgt_vec)
         return float(cosine_similarity(src_vectors, tgt_vectors))
 
-    def doc_score(self, src_sents: List[str], tgt_sents: List[str]) -> float:
+    def doc_score(self, src_sents, tgt_sents):
         """Compute the similarity between two documents i.e. two lists of sentences"""
-        # FIXME: implement this
-        raise Exception('Not Implemented')
+        # # FIXME: implement this
+        # raise Exception('Not Implemented')
+        src_merged = []
+        for i in src_sents:
+            src_merged += i.lower().split()
+        tgt_merged = []
+        for i in tgt_sents:
+            tgt_merged += i.lower().split()
+        src_vectors = bow([tgt_merged], self.src_vec)
+        tgt_vectors = bow([tgt_merged], self.tgt_vec)
+        return float(cosine_similarity(src_vectors, tgt_vectors))
 
 
 if __name__ == '__main__':
 
-    p_src_vec = 'rpi/vectors-si.txt'
-    p_tgt_vec = 'rpi/vectors-en.txt'
-    mcss = MCSS(p_src_vec, p_tgt_vec)
+    p_src_vec = '../vectors-si.txt'
+    p_tgt_vec = '../en.fasttext.sg.dim300.min5.vec'
+    mcss = MCSS(p_src_vec, p_tgt_vec, nmax=10000)
 
     s = 'උස අඩි 8 ක් පමණ වන මෙම අලියාගේ වයස අවුරුදු 25 ක් පමණ වන බව සඳහන් .'
     t = 'The 8 feet tall elephant is around 25 - years of age .'
     print(mcss.score(s, t))
-    s = 'උස අඩි 8 ක් පමණ වන මෙම අලියාගේ වයස අවුරුදු 25 ක් පමණ වන බව සඳහන් .'
     t = 'this is a test .'
     print(mcss.score(s, t))
+
+    s = [
+        'උස අඩි 8 ක් පමණ වන මෙම අලියාගේ වයස අවුරුදු 25 ක් පමණ වන බව සඳහන් .',
+        'ඔවුන් ඇෆ්ගනිස්ථානය , ඉරානය , ඉරාකය , ලිබියාව , රුවන්ඩාව , සර්බියාව , කොංගෝව සහ ශ්‍රී ලංකාව වැනි රටවලින් පැමිණි අය බවයි බී . බී . සී .',
+    ]
+    t = [
+        'The 8 feet tall elephant is around 25 - years of age .',
+        'Suspects originated from countries including Afghanistan , Iran , Iraq , Libya , Rwanda , Serbia and Sri Lanka .',
+    ]
+    print(mcss.doc_score(s, t))
+    t = [
+        'this is a test .',
+        'i am not a parallel sentence .'
+    ]
+    print(mcss.doc_score(s, t))
