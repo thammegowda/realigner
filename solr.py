@@ -162,3 +162,50 @@ class Solr(object):
         """ commit pending docs before close """
         log.info('Solr: commit pending docs before close ...')
         log.info('Solr: status = %s' % self.commit())
+
+
+def main(url, queries, start, rows, out, fl=None, tsv=False, limit=None, sort=None):
+    solr = Solr(url)
+    extra = {}
+    if fl:
+        extra['fl'] = fl
+    if sort:
+        extra['sort'] = sort
+    if len(queries) > 1:
+        extra['fq'] = " AND ".join(queries[1:])
+
+    fl = fl.split(',') if fl else []
+
+    def out_fmt(doc):
+        if tsv:
+            if fl:
+                return '\t'.join([doc[f] for f in fl])
+            else:
+                return '\t'.join(doc.values())
+        return json.dumps(doc, ensure_ascii=False)
+
+    count = 0
+    for doc in solr.query_iterator(queries[0], start, rows, **extra):
+        line = out_fmt(doc)
+        out.write(line)
+        out.write('\n')
+        count += 1
+        if limit and count >= limit:
+            log.warning(f"Stopping early at {count}")
+            break
+
+
+if __name__ == '__main__':
+    import argparse, sys
+    p = argparse.ArgumentParser()
+    p.add_argument('url', type=str, help='Solr URL')
+    p.add_argument('queries', type=str, nargs='+', help='Filter Queries')
+    p.add_argument('-s', '--start', type=int, default=0, help='start from result index')
+    p.add_argument('-r', '--rows', type=int, default=1000, help='batch size')
+    p.add_argument('-l', '--limit', type=int, help='Stop after reading these many records (optional)')
+    p.add_argument('-fl', '--fl', type=str, help='field names separated by comma')
+    p.add_argument('--sort', type=str, help='sort by')
+    p.add_argument('-o', '--out', type=argparse.FileType('w'), help='Output File', default=sys.stdout)
+    p.add_argument('--tsv', action='store_true', help='Output TSV instead of JSON  Line')
+    args = vars(p.parse_args())
+    main(**args)
