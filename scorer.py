@@ -47,7 +47,9 @@ class UnifiedScorer:
                 log.debug(f"Going to reject, because SRC: {src_toks} TGT:{tgt_toks} are not same")
             else:
                 # number of matches used as evidence. zero matches must yield zero score
-                score += 2 * self.may_accept * len(src_toks)
+                #score += 2 * self.may_accept * len(src_toks)
+                # EDIT: going to accept straight away if there is atleast one match
+                score += 2 * self.must_accept * len(src_toks)
         return score
 
     def charlen_score(self, src: str, tgt: str) -> float:
