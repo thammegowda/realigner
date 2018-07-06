@@ -31,9 +31,9 @@ class UnifiedScorer:
         }
         flags = flags.split(',') if type(flags) is str else flags
         self.scorers = [mapping[flag] for flag in flags]
-        self.final_scorer = final_scorer
         if not final_scorer:
-            log.warning('Final Scorer is None, this is not recommended')
+            log.warning('Final Scorer is None, this setting is not recommended')
+        self.final_scorer = final_scorer.score if final_scorer else None
         self.debug = debug
 
     def copy_score(self, src: str, tgt: str) -> float:
@@ -100,7 +100,7 @@ def get_scorer(flags, max_vocab, src_emb=None, eng_emb=None, debug=False, **args
         flags.remove('mcss')
         assert src_emb and eng_emb, '--src-emb and --eng-emb args are required if "mcss" is enabled'
         from mcss import MCSS
-        mcss = MCSS(src_vec_path=src_emb, tgt_vec_path=eng_emb, nmax=max_vocab).score
+        mcss = MCSS(src_vec_path=src_emb, tgt_vec_path=eng_emb, nmax=max_vocab)
     return UnifiedScorer(final_scorer=mcss, flags=flags, debug=debug) if flags else mcss
 
 
@@ -146,9 +146,9 @@ def test(scorer, inp, out, neg_sample_count=20, **args):
         else:
             out.write(f'{i+1:5}\t[TRUE  POS]\t{pos_tgt_score:.4f}\t{src}\t{pos_tgt}\n')
         out.write('\n')
-    out.write("\n==================================\n")
-    out.write(f'Summary: {err_count} out of {len(pos_exs)} source sentences were scored higher with wrong targets'
-              f' ({(100.0 * err_count /len(pos_exs)):.2f}%)\n')
+    out.write("\n=============SUMMARY=====================\n")
+    out.write(f'Errors: {(100.0 * err_count / len(pos_exs)):.2f}% '
+              f' i.e. {err_count} out of {len(pos_exs)} source sentences were scored higher with wrong targets\n')
     out.write(f"Positives: {len(pos_exs)}  Negatives: {len(pos_exs)} x {neg_sample_count} = {neg_count}\n")
     out.write(f"Mean-squared diff of positives from 1.0: {pos_mse:.4f}\n")
     out.write(f"Mean-squared diff of negatives from 0.0: {neg_mse:.4f}\n")
