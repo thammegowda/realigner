@@ -49,7 +49,7 @@ class UnifiedScorer:
                 # number of matches used as evidence. zero matches must yield zero score
                 #score += 2 * self.may_accept * len(src_toks)
                 # EDIT: going to accept straight away if there is atleast one match
-                score += 2 * self.must_accept * len(src_toks)
+                score += self.must_accept * len(src_toks)
         return score
 
     def charlen_score(self, src: str, tgt: str) -> float:
