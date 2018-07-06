@@ -117,7 +117,7 @@ def test(scorer, inp, out, neg_sample_count=20, **args):
     assert pos_count > neg_sample_count
     src_sqs, tgt_seqs = zip(*pos_exs)
     pos_scores = {src: scorer.score(src, tgt) for src, tgt in pos_exs}
-    assert len(pos_scores) == pos_count
+    # assert len(pos_scores) == pos_count , 'Uniq sentences'
     error_tgts = defaultdict(set)
     neg_error = 0.0
     neg_count = 0
