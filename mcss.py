@@ -89,8 +89,6 @@ class MCSS:
 
     def doc_score(self, src_sents, tgt_sents):
         """Compute the similarity between two documents i.e. two lists of sentences"""
-        # # FIXME: implement this
-        # raise Exception('Not Implemented')
         src_merged = []
         for i in src_sents:
             src_merged += i.lower().split()

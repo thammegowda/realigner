@@ -13,8 +13,7 @@ import multiprocessing as mp
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from ltfreader import read_ltf_doc, Doc
-from mcss import MCSS
-from scorer import UnifiedScorer
+from scorer import get_scorer
 
 log.basicConfig(level=log.INFO)
 debug_mode = False
@@ -153,16 +152,8 @@ def main(found_dir, src_lang, out_dir, flags, **args):
     os.makedirs(out_dir, exist_ok=True)
     aln_maps = list(read_doc_alignments(aln_dir))
     log.info(f"Found {len(aln_maps)} doc mappings")
-
-    nmax = 1e4 if debug_mode else 3e5
-    mcss = None
-    if 'mcss' in flags:
-        assert 'src_emb' in args and 'eng_emb' in args, '--src-emb and --eng-emb args are required if "mcss" is enabled'
-        mcss = MCSS(src_vec_path=args.pop('src_emb'), tgt_vec_path=args.pop('eng_emb'), nmax=nmax)
-    if flags == 'mcss':
-        scorer = mcss
-    else:
-        scorer = UnifiedScorer(mcss=mcss, flags=flags, debug=debug_mode)
+    scorer = get_scorer(flags, debug=debug_mode, max_vocab=args.pop('max_vocab'),
+                        src_emb=args.pop('src_emb'), eng_emb=args.pop('eng_emb'))
     re_align_all(aln_maps, found_dir=found_dir, out_dir=out_dir, scorer=scorer, **args)
 
 
@@ -177,6 +168,7 @@ if __name__ == '__main__':
     p.add_argument('-th', '--threshold', type=float, default=0.0,
                    help='threshold score below which the sentence pairs must be ignored')
     p.add_argument('-nt', '--threads', type=int, default=2, help='Number of threads to use')
+    p.add_argument('-mv', '--max-vocab', type=int, default=int(1e6), help='Maximum Vocabulary size (MCSS vectors)')
     p.add_argument('-f', '--flags', type=str, default='charlen,toklen,copypatn,ascii,mcss',
                    help='comma separated list of scorers to use. For example set -f "mcss" to use only MCSS or'
                         ' "copypatn,mcss" to use copy pattern scorer and MCSS')
