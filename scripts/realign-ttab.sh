@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Author = Thamme Gowda ; Created : July 08, 2018
-#$ -cwd -P other -pe mt 45 -l h_vmem=55G,h_rt=24:00:00,gpu=0
+#$ -cwd -P other -pe mt 40 -l h_vmem=35G,h_rt=24:00:00,gpu=0
 
 # memory requirement depends on threads
 if [[ $# -ne 1 ]]; then
