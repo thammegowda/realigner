@@ -126,7 +126,7 @@ def get_scorer(flags, debug=False, **args):
     final_scorer = None
     if len(scorers) == 1:
         final_scorer = scorers[0]
-    elif len(scorer) > 1:
+    elif len(scorers) > 1:
         final_scorer = ScoreAggregator(scorers)
     return UnifiedScorer(final_scorer, flags=flags, debug=debug) if flags else final_scorer
 
