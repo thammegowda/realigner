@@ -14,6 +14,7 @@ import multiprocessing as mp
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from ltfreader import read_ltf_doc, Doc
 from scorer import get_scorer
+from ttab import TTable
 
 log.basicConfig(level=log.INFO)
 debug_mode = False
@@ -131,6 +132,7 @@ class ReAlignTask:
 
 
 def re_align_all(doc_mapping: List[Tuple[str, str]], found_dir, out_dir, scorer, threshold, threads=2):
+    assert threshold <= 1
     log.info(f"Going to use {threads} threads")
     task_pool = mp.Pool(threads)
     task = ReAlignTask(found_dir, out_dir, scorer, threshold)
@@ -139,22 +141,22 @@ def re_align_all(doc_mapping: List[Tuple[str, str]], found_dir, out_dir, scorer,
     task_pool.join()
 
 
-def main(found_dir, src_lang, out_dir, flags, **args):
+def main(found_dir, src_lang, out_dir, flags, old_aln_dir='sentence_alignment.old', **args):
     subs = os.listdir(found_dir)
     assert 'eng' in subs
     assert src_lang in subs
-    assert 'sentence_alignment' in subs
+    assert old_aln_dir in subs
 
-    aln_dir = f'{found_dir}/sentence_alignment'
+    aln_dir = f'{found_dir}/{old_aln_dir}'
     if '/' not in out_dir:
         out_dir = f'{found_dir}/{out_dir}'
     log.info(f"Output dir {out_dir}")
     os.makedirs(out_dir, exist_ok=True)
     aln_maps = list(read_doc_alignments(aln_dir))
     log.info(f"Found {len(aln_maps)} doc mappings")
-    scorer = get_scorer(flags, debug=debug_mode, max_vocab=args.pop('max_vocab'),
-                        src_emb=args.pop('src_emb'), eng_emb=args.pop('eng_emb'))
-    re_align_all(aln_maps, found_dir=found_dir, out_dir=out_dir, scorer=scorer, **args)
+    scorer = get_scorer(flags, debug=debug_mode, **args)
+    re_align_all(aln_maps, found_dir=found_dir, out_dir=out_dir, scorer=scorer,
+                 threshold=args['threshold'], threads=args['threads'])
 
 
 if __name__ == '__main__':
@@ -162,17 +164,23 @@ if __name__ == '__main__':
     p.add_argument('-fd', '--found-dir', type=str, required=True,
                    help='Path to "found" dir that has eng and xyz lan')
     p.add_argument('-l', '--lang', dest='src_lang', type=str, required=True, help='source language code')
-    p.add_argument('-o', '--out-dir', type=str, default='sentence_alignment-tg')
-    p.add_argument('-se', '--src-emb', type=str, help='path to source language embedding (MCSS vectors)')
-    p.add_argument('-ee', '--eng-emb', type=str, help='path to english language embedding (MCSS vectors)')
+    p.add_argument('-o', '--out-dir', type=str, default='sentence_alignment-ttab',
+                   help='Create new alignments files inside this directory')
+    p.add_argument('-f', '--flags', type=str, default='charlen,toklen,copypatn,ascii,ttab',
+                   help='comma separated list of scorers to use.'
+                        ' For example set -f "mcss" to use only MCSS or'
+                        ' "copypatn,mcss" to use copy pattern scorer and MCSS or'
+                        ' "ttab" to use t-table scorer')
+    p.add_argument('-d', '--debug', action='store_true', help="Turn on the debug mode")
     p.add_argument('-th', '--threshold', type=float, default=0.0,
                    help='threshold score below which the sentence pairs must be ignored')
     p.add_argument('-nt', '--threads', type=int, default=2, help='Number of threads to use')
-    p.add_argument('-mv', '--max-vocab', type=int, default=int(1e6), help='Maximum Vocabulary size (MCSS vectors)')
-    p.add_argument('-f', '--flags', type=str, default='charlen,toklen,copypatn,ascii,mcss',
-                   help='comma separated list of scorers to use. For example set -f "mcss" to use only MCSS or'
-                        ' "copypatn,mcss" to use copy pattern scorer and MCSS')
-    p.add_argument('-d', '--debug', action='store_true', help="Turn on the debug mode")
+
+    p.add_argument('-se', '--src-emb', type=str, help='path to source language embedding (flag=mcss)')
+    p.add_argument('-ee', '--eng-emb', type=str, help='path to english language embedding (flag=mcss)')
+    p.add_argument('-mv', '--max-vocab', type=int, default=int(1e6), help='Maximum Vocabulary size (flag=mcss)')
+    p.add_argument('-tf', '--ttab-file', type=str, help='Path to ttab file (flag=ttab)')
+
     args = vars(p.parse_args())
     if args.pop('debug'):
         log.getLogger().setLevel(level=log.DEBUG)
