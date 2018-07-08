@@ -139,6 +139,7 @@ def re_align_all(doc_mapping: List[Tuple[str, str]], found_dir, out_dir, scorer,
     task_pool.map(task.run, doc_mapping)
     task_pool.close()
     task_pool.join()
+    log.info("Exiting...")
 
 
 def main(found_dir, src_lang, out_dir, flags, old_aln_dir='sentence_alignment.old', **args):
@@ -187,4 +188,5 @@ if __name__ == '__main__':
         debug_mode = True
         log.debug("Debug Mode ON")
     main(**args)
+    log.info("Done.")
 
