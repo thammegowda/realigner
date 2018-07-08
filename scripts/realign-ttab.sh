@@ -19,4 +19,4 @@ TTAB_FILE=/nas/material/users/tg/work/elisa/y3-eval/ttabs/${lang}-eng.lc.ttab.pk
 
 FLAGS="charlen,toklen,copypatn,ascii,ttab"
 python3 $CODE/realigner.py -f ${FLAGS} -fd ${FDIR} -l ${lang} -tf ${TTAB_FILE} \
-   --threshold 0.2 --threads 40 -o 'sentence_alignment-ttab'
+   --threshold 0.2 --threads 40 -o 'sentence_alignment-ttab-swap'

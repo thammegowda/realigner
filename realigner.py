@@ -43,13 +43,19 @@ def read_doc_alignments(aln_dir):
         yield read_doc_id_mapping(f)
 
 
-def write_alignment(path: str, aln: Alignment):
+def write_alignment(path: str, aln: Alignment, swap=True):
     log.info(f"Writing alignment file {path}")
     root = et.Element("alignments")
-    root.attrib['source_id'] = aln.src_id
-    root.attrib['translation_id'] = aln.tgt_id
+    if swap:
+        root.attrib['source_id'] = aln.tgt_id
+        root.attrib['translation_id'] = aln.src_id
+        aln_segs = [(tgts, srcs, score) for srcs, tgts, score in aln.alignments]
+    else:
+        root.attrib['source_id'] = aln.src_id
+        root.attrib['translation_id'] = aln.tgt_id
+        aln_segs = aln.alignments
     tree = et.ElementTree(root)
-    for source_ids, target_ids, score in aln.alignments:
+    for source_ids, target_ids, score in aln_segs:
         alignment = et.Element("alignment")
         alignment.attrib['score'] = f'{score:.4f}'
         source = et.Element("source")
@@ -117,7 +123,8 @@ class ReAlignTask:
         src_id, eng_id = ids
         if src_id.lower().startswith('eng'):  # if swapping needed
             src_id, eng_id = eng_id, src_id
-        out_path = self.aln_path(src_id)
+
+        out_path = self.aln_path(eng_id)
         if os.path.exists(out_path):
             log.info(f'Skip: {src_id} x {eng_id} :: File exists {out_path}')
             return
@@ -126,7 +133,7 @@ class ReAlignTask:
         eng_doc = read_ltf_doc(self.ltf_path(eng_id))
         new_algn = re_align_segs(src_doc, eng_doc, self.scorer, self.threshold)
         if new_algn:
-            write_alignment(out_path, new_algn)
+            write_alignment(out_path, new_algn, swap=True)
         else:
             log.warning(f'{src_id} x {eng_id} :: No alignment possible')
 
