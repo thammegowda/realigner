@@ -8,7 +8,7 @@ import logging as log
 import re
 import pickle
 from typing import Dict
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 
 
 class TTable:
@@ -16,7 +16,8 @@ class TTable:
     Translation Table - alignment information from Giza Aligner
     """
 
-    def __init__(self, src: str, tgt: str, src_vocab: str, tgt_vocab: str, fwd_table: str, inv_table: str=None):
+    def __init__(self, src: str, tgt: str, src_vocab: str, tgt_vocab: str, fwd_table: str, inv_table: str=None,
+                 src_lower=False, tgt_lower=False):
         """
         creates a translational table
         :param src: source language code
@@ -27,13 +28,16 @@ class TTable:
         log.info(f"Vocabulary Files: {src}: {src_vocab};  {tgt}:{tgt_vocab}")
         self.src_id2tok, self.src_freq = TTable.load_vocab(src_vocab)
         self.tgt_id2tok, self.tgt_freq = TTable.load_vocab(tgt_vocab)
-        self.src_tok2id, self.tgt_tok2id = TTable.reverse_map(self.src_id2tok), TTable.reverse_map(self.tgt_id2tok)
+        self.src_tok2id = TTable.reverse_map(self.src_id2tok, one_to_one=False)
+        self.tgt_tok2id = TTable.reverse_map(self.tgt_id2tok, one_to_one=False)
         log.info("Vocabulary Size: SRC: %d; TGT:%d" % (len(self.src_id2tok), len(self.tgt_id2tok)))
 
         self.fwd: Dict[str, OrderedDict[str, float]] = self.read_ttab(fwd_table, self.src_id2tok, self.tgt_id2tok)
         self.inv: Dict[str, OrderedDict[str, float]] = \
             self.read_ttab(inv_table, self.tgt_id2tok, self.src_id2tok) if inv_table else {}
         log.info("T-Tab Size: Normal: %d; inverse:%d" % (len(self.fwd), len(self.inv)))
+        self.is_src_lower = src_lower
+        self.is_tgt_lower = tgt_lower
 
     def store_at(self, path):
         log.info('storing at %s' % path)
@@ -73,10 +77,11 @@ class TTable:
             id2tok = {}
             freq = {}
             for line in f.readlines():
-                line = line.strip()
-                if not line:
+                parts = line.strip().split()
+                if len(parts) < 3:
+                    log.warning(f"Cant parse line \"{line}\" in file {path}. Skipped")
                     continue
-                idx, tok, count = line.split()
+                idx, tok, count = parts[0], '_'.join(parts[1:-1]), parts[-1]
                 idx, count = int(idx), int(count)
                 id2tok[idx] = tok
                 freq[idx] = count
@@ -94,6 +99,12 @@ class TTable:
             for line in f:
                 src_id, tgt_id, prob = line.split()
                 src_id, tgt_id, prob = int(src_id), int(tgt_id), float(prob)
+                if src_id not in idx1:
+                    log.warning(f"token with index {src_id} not found in vocabulary of size {len(idx1)}")
+                    continue
+                if tgt_id not in idx2:
+                    log.warning(f"token with index {tgt_id} not found in vocabulary of size {len(idx2)}")
+                    continue
                 src_tok, tgt_tok = idx1[src_id], idx2[tgt_id]
                 if src_tok not in ttab:
                     ttab[src_tok] = OrderedDict()
@@ -115,6 +126,8 @@ if __name__ == '__main__':
                         help='Source vocabulary file. Format: Index<space>Word<space>Count per line')
     parser.add_argument('-tv', '--tgt-vocab', required=True, type=str,
                         help='Target vocabulary file.  Format: Index<space>Word<space>Count per line')
+    parser.add_argument('--src-lower', action='store_true', help='If the source vocabulary was lower cased.')
+    parser.add_argument('--tgt-lower', action='store_true', help='If the target vocabulary was lower cased.')
 
     parser.add_argument('-o', '--out', help='Store the compressed T-Tab at this path', required=True)
     args = vars(parser.parse_args())

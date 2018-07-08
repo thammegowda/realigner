@@ -4,6 +4,7 @@ A scorer for mining parallel/comparable sentences from comparable documents
 """
 import logging as log
 import re
+from ttab import TTable  # the pickler complains about not having this
 
 log.basicConfig(level=log.INFO)
 
@@ -53,14 +54,14 @@ class UnifiedScorer:
 
     def charlen_score(self, src: str, tgt: str) -> float:
         ratio = (1 + len(src)) / (1 + len(tgt))
-        if 0.33 <= ratio <= 3.0:
+        if 0.5 <= ratio <= 2.0:
             return self.not_sure
         else:
             return self.must_reject
 
     def toklen_score(self, src: str, tgt: str) -> float:
         ratio = (1 + len(src.split())) / (1 + len(tgt.split()))
-        if 0.33 <= ratio <= 3.0:
+        if 0.5 <= ratio <= 2.0:
             return self.not_sure
         else:
             return self.must_reject
@@ -147,7 +148,7 @@ if __name__ == '__main__':
     p.add_argument('-f', '--flags', type=str,
                    help='list of scorers to use. "mcss" to use only the mcss scorer, or "ttab" to use just TTab scorer'
                         ' or "mcss,ttab" to use both',
-                   default='charlen,toklen,copypatn,ascii,mcss,ttab')
+                   default='charlen,toklen,copypatn,ascii,ttab')
     p.add_argument('-se', '--src-emb', type=str, help='path to source language embedding (flag=mcss)')
     p.add_argument('-ee', '--eng-emb', type=str, help='path to english language embedding (flag=mcss)')
     p.add_argument('-m', '--max-vocab', type=int, help='Max vocabulary size (flag=mcss)', default=int(1e6))
@@ -160,6 +161,7 @@ if __name__ == '__main__':
                    help="Turn on the test mode. In test mode, assume the input is parallel text "
                         "(i.e. positive alignments) and randomly shuffles the input to obtain negative alignments")
     args = vars(p.parse_args())
+
     scorer = get_scorer(**args)
     if args.pop('test'):
         from utils import scorer_eval

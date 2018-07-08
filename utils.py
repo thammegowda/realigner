@@ -2,7 +2,7 @@ from collections import defaultdict
 import random
 
 
-def scorer_eval(scorer, inp, out, neg_sample_count=20, verbose=True, parse=True, seed=None):
+def scorer_eval(scorer, inp, out, neg_sample_count=20, verbose=True, parse=True, seed=None, **args):
     """
     :param scorer: scorer to evaluate on
     :param inp: input having parallel data (positive examples)
