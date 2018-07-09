@@ -44,7 +44,7 @@ def scorer_eval(scorer, inp, out, neg_sample_count=20, verbose=True, parse=True,
         if error_tgts[src]:
             err_count += 1
             out.write(f'{i+1:5}\t[FALSE NEG]\t{pos_tgt_score:.4f}\t{src}\t{pos_tgt}\n')
-            errs_sorted = sorted(error_tgts[src], key=lambda x: x[1], reverse=True)
+            errs_sorted = sorted(error_tgts[src], key=lambda x: x[0], reverse=True)
             errs_sorted = errs_sorted if verbose else errs_sorted[:1]
             for err_tgt_score, err_tgt in errs_sorted:
                 out.write(f'\t[FALSE POS]\t{err_tgt_score:.4f}\t{err_tgt}\n')
