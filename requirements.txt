@@ -1,0 +1,17 @@
+python >= 3.5
+
+
+# if morfessor was used
+morfessor
+
+
+# if LDC's XML files are used as data source
+lxml
+
+# if solr to be used as data source
+requests
+
+# if MCSS to be used as a scoring function
+scikit-learn
+numpy
+

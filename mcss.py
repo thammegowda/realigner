@@ -4,7 +4,7 @@ import logging
 
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
-from typing import List
+
 
 logger = logging.getLogger()
 logging.basicConfig(format='%(asctime)s: %(levelname)s: %(message)s')
