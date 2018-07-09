@@ -8,7 +8,45 @@ import logging as log
 import re
 import pickle
 from typing import Dict
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict
+import functools
+
+
+class Preprocessor:
+    """
+    Preprocessor to match the training settings of aligner used to build TTables.
+    Accepts a sentence and converts into either tokens or morphemes optionally lowercasing
+    """
+    def __init__(self, lang, side, lowercase, model_path: str=None):
+        self.lang = lang
+        self.side = side
+        self.lowercase = lowercase
+        self.morf_model = None
+        if model_path:
+            log.info(f"Loading morph model from {model_path}")
+            try:
+                from morfessor import MorfessorIO
+            except:
+                log.error("Please do `pip install morfessor`")
+                raise
+            try:
+                self.morf_model = MorfessorIO().read_binary_model_file(model_path)
+            except:
+                log.error("If this is a py2 model, see https://github.com/aalto-speech/morfessor/issues/12")
+                raise
+
+    @functools.lru_cache(maxsize=100_000)
+    def morfess(self, word):
+        return self.morf_model.viterbi_segment(word)
+
+    def __call__(self, sentence: str):
+        if self.lowercase:
+            sentence = sentence.lower()
+        if self.morf_model:
+            split_toks = map(self.morfess, sentence.split())
+            toks = [morph for tok in split_toks for morph in tok]
+        else:
+            toks = sentence.split()
 
 
 class TTable:
@@ -17,7 +55,7 @@ class TTable:
     """
 
     def __init__(self, src: str, tgt: str, src_vocab: str, tgt_vocab: str, fwd_table: str, inv_table: str=None,
-                 src_lower=False, tgt_lower=False):
+                 src_lower=False, tgt_lower=False, src_morfessor_model=None, tgt_morfessor_model=None):
         """
         creates a translational table
         :param src: source language code
@@ -25,6 +63,8 @@ class TTable:
         """
         self.src = src
         self.tgt = tgt
+        self.src_prep = Preprocessor(src, 'src', src_lower, src_morfessor_model)
+        self.tgt_prep = Preprocessor(tgt, 'tgt', tgt_lower, tgt_morfessor_model)
         log.info(f"Vocabulary Files: {src}: {src_vocab};  {tgt}:{tgt_vocab}")
         self.src_id2tok, self.src_freq = TTable.load_vocab(src_vocab)
         self.tgt_id2tok, self.tgt_freq = TTable.load_vocab(tgt_vocab)
@@ -36,8 +76,6 @@ class TTable:
         self.inv: Dict[str, OrderedDict[str, float]] = \
             self.read_ttab(inv_table, self.tgt_id2tok, self.src_id2tok) if inv_table else {}
         log.info("T-Tab Size: Normal: %d; inverse:%d" % (len(self.fwd), len(self.inv)))
-        self.is_src_lower = src_lower
-        self.is_tgt_lower = tgt_lower
 
     def store_at(self, path):
         log.info('storing at %s' % path)
@@ -128,11 +166,12 @@ if __name__ == '__main__':
                         help='Target vocabulary file.  Format: Index<space>Word<space>Count per line')
     parser.add_argument('--src-lower', action='store_true', help='If the source vocabulary was lower cased.')
     parser.add_argument('--tgt-lower', action='store_true', help='If the target vocabulary was lower cased.')
-
+    parser.add_argument('-sm', '--src-morfessor-model', type=str, help='Source morfessor model file, if it was used')
+    parser.add_argument('-tm', '--tgt-morfessor-model', type=str, help='Target morfessor model file, if it was used')
     parser.add_argument('-o', '--out', help='Store the compressed T-Tab at this path', required=True)
     args = vars(parser.parse_args())
     out = args.pop('out')
     ttab = TTable(**args)
-    if not out.endswith('.pkl') and not out.endswith('.pickle'):
+    if not any(map(lambda ext: out.endswith(ext), ['.pkl', '.pickle'])):
         out += '.pkl'
     ttab.store_at(out)

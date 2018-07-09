@@ -21,8 +21,8 @@ class TranScorer:
         """
         self.src_tgt = ttab.fwd
         self.tgt_src = ttab.inv
-        self.src_is_lower = ttab.is_src_lower
-        self.tgt_is_lower = ttab.is_tgt_lower
+        self.src_prep = ttab.src_prep
+        self.tgt_prep = ttab.tgt_prep
         self.combiner = {'sum': sum, 'max': max}[combine]
         log.info(f"Translation Scorer source: {ttab.src} tgt:{ttab.tgt}, combiner ={combine}")
 
@@ -56,11 +56,8 @@ class TranScorer:
         return self.combiner(cand_scores) if cand_scores else 0.0
 
     def score(self, src, tgt):
-        if self.src_is_lower:
-            src = src.lower()
-        if self.tgt_is_lower:
-            tgt = tgt.lower()
-        src_toks, tgt_toks = src.split(), tgt.split()
+        src_toks = self.src_prep(src)
+        tgt_toks = self.tgt_prep(tgt)
         # NOTE: in this version, the repeated use of tokens are not dealt with
         src_tok_set, tgt_tok_set = set(src_toks), set(tgt_toks)
 
