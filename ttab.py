@@ -7,7 +7,7 @@ Translation Table Data Structure
 import logging as log
 import re
 import pickle
-from typing import Dict
+from typing import Dict, List
 from collections import OrderedDict
 import functools
 
@@ -36,10 +36,11 @@ class Preprocessor:
                 raise
 
     @functools.lru_cache(maxsize=100_000)
-    def morfess(self, word):
-        return self.morf_model.viterbi_segment(word)
+    def morfess(self, word: str) -> List[str]:
+        splits, score = self.morf_model.viterbi_segment(word)
+        return splits
 
-    def __call__(self, sentence: str):
+    def __call__(self, sentence: str) -> List[str]:
         if self.lowercase:
             sentence = sentence.lower()
         if self.morf_model:
@@ -47,6 +48,7 @@ class Preprocessor:
             toks = [morph for tok in split_toks for morph in tok]
         else:
             toks = sentence.split()
+        return toks
 
 
 class TTable:

@@ -14,7 +14,7 @@ import multiprocessing as mp
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from ltfreader import read_ltf_doc, Doc
 from scorer import get_scorer
-from ttab import TTable
+from ttab import TTable, Preprocessor
 
 log.basicConfig(level=log.INFO)
 debug_mode = False

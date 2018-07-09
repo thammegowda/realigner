@@ -4,7 +4,7 @@ A scorer for mining parallel/comparable sentences from comparable documents
 """
 import logging as log
 import re
-from ttab import TTable  # the pickler complains about not having this
+from ttab import TTable, Preprocessor  # the pickler complains about not having this
 
 log.basicConfig(level=log.INFO)
 
