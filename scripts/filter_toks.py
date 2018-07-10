@@ -101,6 +101,13 @@ def emoji_regex_str(codes=emoji_codes):
     codes = sorted(codes)
     last = codes[0]
     ranges = []
+
+    def utf(code_pt):
+        if code_pt < 2**16:
+            return f'\\u{code_pt:04X}'
+        else:
+            return f'\\U{code_pt:08X}'
+
     for i in range(1, len(codes)):
         if codes[i] != codes[i-1] + 1:
             ranges.append((last, codes[i-1]))
@@ -108,17 +115,16 @@ def emoji_regex_str(codes=emoji_codes):
     ranges.append((last, codes[-1]))
     re_parts = []
     for start, end in ranges:
-        print(start, end)
         if start == end:    # single char
-            re_parts.append(f'\\u{start:04X}')
+            re_parts.append(utf(start))
         else:   # range
-            re_parts.append(f'\\u{start:04X}-\\u{end:04X}')
-    return '[' + ''.join(re_parts) + ']'
+            re_parts.append(f'{utf(start)}-{utf(end)}')
+    return '([' + ''.join(re_parts) + ']+)'
+
 
 # use ur'[]' instead of r'[]' for older python
-# emoji_regex = re.compile(r'[\u00A9\u00AE\u200D\u203C\u2049\u20E3\u2122\u2139\u2194-\u2199\u21A9-\u21AA\u231A-\u231B\u2328\u23CF\u23E9-\u23F3\u23F8-\u23FA\u24C2\u25AA-\u25AB\u25B6\u25C0\u25FB-\u25FE\u2600-\u2604\u260E\u2611\u2614-\u2615\u2618\u261D\u2620\u2622-\u2623\u2626\u262A\u262E-\u262F\u2638-\u263A\u2640\u2642\u2648-\u2653\u2660\u2663\u2665-\u2666\u2668\u267B\u267F\u2692-\u2697\u2699\u269B-\u269C\u26A0-\u26A1\u26AA-\u26AB\u26B0-\u26B1\u26BD-\u26BE\u26C4-\u26C5\u26C8\u26CE-\u26CF\u26D1\u26D3-\u26D4\u26E9-\u26EA\u26F0-\u26F5\u26F7-\u26FA\u26FD\u2702\u2705\u2708-\u270D\u270F\u2712\u2714\u2716\u271D\u2721\u2728\u2733-\u2734\u2744\u2747\u274C\u274E\u2753-\u2755\u2757\u2763-\u2764\u2795-\u2797\u27A1\u27B0\u27BF\u2934-\u2935\u2B05-\u2B07\u2B1B-\u2B1C\u2B50\u2B55\u3030\u303D\u3297\u3299\uFE0F\u1F004\u1F0CF\u1F170-\u1F171\u1F17E-\u1F17F\u1F18E\u1F191-\u1F19A\u1F1E6-\u1F1FF\u1F201-\u1F202\u1F21A\u1F22F\u1F232-\u1F23A\u1F250-\u1F251\u1F300-\u1F321\u1F324-\u1F393\u1F396-\u1F397\u1F399-\u1F39B\u1F39E-\u1F3F0\u1F3F3-\u1F3F5\u1F3F7-\u1F4FD\u1F4FF-\u1F53D\u1F549-\u1F54E\u1F550-\u1F567\u1F56F-\u1F570\u1F573-\u1F57A\u1F587\u1F58A-\u1F58D\u1F590\u1F595-\u1F596\u1F5A4-\u1F5A5\u1F5A8\u1F5B1-\u1F5B2\u1F5BC\u1F5C2-\u1F5C4\u1F5D1-\u1F5D3\u1F5DC-\u1F5DE\u1F5E1\u1F5E3\u1F5E8\u1F5EF\u1F5F3\u1F5FA-\u1F64F\u1F680-\u1F6C5\u1F6CB-\u1F6D2\u1F6E0-\u1F6E5\u1F6E9\u1F6EB-\u1F6EC\u1F6F0\u1F6F3-\u1F6F8\u1F910-\u1F93A\u1F93C-\u1F93E\u1F940-\u1F945\u1F947-\u1F94C\u1F950-\u1F96B\u1F980-\u1F997\u1F9C0\u1F9D0-\u1F9E6\uE0062-\uE0063\uE0065\uE0067\uE006C\uE006E\uE0073-\uE0074\uE0077\uE007F]')
-
-
+# Note that some emojis are over \uFFFF  so we need UTF-32 (\Uxxxxxxxx) instead of UTF-16 (\uxxxx)
+emoji_regex = re.compile(r'([\u00A9\u00AE\u200D\u203C\u2049\u20E3\u2122\u2139\u2194-\u2199\u21A9-\u21AA\u231A-\u231B\u2328\u23CF\u23E9-\u23F3\u23F8-\u23FA\u24C2\u25AA-\u25AB\u25B6\u25C0\u25FB-\u25FE\u2600-\u2604\u260E\u2611\u2614-\u2615\u2618\u261D\u2620\u2622-\u2623\u2626\u262A\u262E-\u262F\u2638-\u263A\u2640\u2642\u2648-\u2653\u2660\u2663\u2665-\u2666\u2668\u267B\u267F\u2692-\u2697\u2699\u269B-\u269C\u26A0-\u26A1\u26AA-\u26AB\u26B0-\u26B1\u26BD-\u26BE\u26C4-\u26C5\u26C8\u26CE-\u26CF\u26D1\u26D3-\u26D4\u26E9-\u26EA\u26F0-\u26F5\u26F7-\u26FA\u26FD\u2702\u2705\u2708-\u270D\u270F\u2712\u2714\u2716\u271D\u2721\u2728\u2733-\u2734\u2744\u2747\u274C\u274E\u2753-\u2755\u2757\u2763-\u2764\u2795-\u2797\u27A1\u27B0\u27BF\u2934-\u2935\u2B05-\u2B07\u2B1B-\u2B1C\u2B50\u2B55\u3030\u303D\u3297\u3299\uFE0F\U0001F004\U0001F0CF\U0001F170-\U0001F171\U0001F17E-\U0001F17F\U0001F18E\U0001F191-\U0001F19A\U0001F1E6-\U0001F1FF\U0001F201-\U0001F202\U0001F21A\U0001F22F\U0001F232-\U0001F23A\U0001F250-\U0001F251\U0001F300-\U0001F321\U0001F324-\U0001F393\U0001F396-\U0001F397\U0001F399-\U0001F39B\U0001F39E-\U0001F3F0\U0001F3F3-\U0001F3F5\U0001F3F7-\U0001F4FD\U0001F4FF-\U0001F53D\U0001F549-\U0001F54E\U0001F550-\U0001F567\U0001F56F-\U0001F570\U0001F573-\U0001F57A\U0001F587\U0001F58A-\U0001F58D\U0001F590\U0001F595-\U0001F596\U0001F5A4-\U0001F5A5\U0001F5A8\U0001F5B1-\U0001F5B2\U0001F5BC\U0001F5C2-\U0001F5C4\U0001F5D1-\U0001F5D3\U0001F5DC-\U0001F5DE\U0001F5E1\U0001F5E3\U0001F5E8\U0001F5EF\U0001F5F3\U0001F5FA-\U0001F64F\U0001F680-\U0001F6C5\U0001F6CB-\U0001F6D2\U0001F6E0-\U0001F6E5\U0001F6E9\U0001F6EB-\U0001F6EC\U0001F6F0\U0001F6F3-\U0001F6F8\U0001F910-\U0001F93A\U0001F93C-\U0001F93E\U0001F940-\U0001F945\U0001F947-\U0001F94C\U0001F950-\U0001F96B\U0001F980-\U0001F997\U0001F9C0\U0001F9D0-\U0001F9E6\U000E0062-\U000E0063\U000E0065\U000E0067\U000E006C\U000E006E\U000E0073-\U000E0074\U000E0077\U000E007F]+)')
 social_pat = re.compile(r'^(https?://[^ ]+|@[^@ ]+|#[^# ]+|([;:]-?[()BDPoO83/*|\]])+)')
 #                Begin with(  URL   | @handle   | #hash | emoticons+                 )
 
@@ -193,13 +199,17 @@ def main(inp, out, tokenized=False, placeholder=None):
         out.write(f'{keep}\t{off}\n')
 
 
-if __name__ == '__main2__':
+if __name__ == '__main__':
     p = argparse.ArgumentParser()
+    p.add_argument('-v', '--info', action='store_true', help='Print info such as emoji regex')
     p.add_argument('-i', '--inp', help='Input file. One sentence per line', default=sys.stdin)
     p.add_argument('-o', '--out', help='Output file. One sentence per line', default=sys.stdout)
     p.add_argument('-t', '--tokenized', action='store_true', help='Text is tokenized, dont subsplit tokens',)
     p.add_argument('-p', '--placeholder', help='Insert this token in the place of removed copy tokens', default=None)
     args = vars(p.parse_args())
-    main(**args)
+    if args.pop('info'):
+        print(emoji_regex_str())
+    else:
+        main(**args)
 
 
