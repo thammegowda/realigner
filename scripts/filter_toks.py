@@ -138,6 +138,9 @@ def extract_copy_toks(tok):
             else:
                 # if none of the above them this is just a boring token
                 left += 1  # advance the left cursor
+
+    if left > last:  # normal boring tokens
+        sub_toks.append((tok[last:left], 0))
     return sub_toks
 
 
@@ -145,7 +148,7 @@ def filter_copy_toks(text, tokenized=False, placeholder=None):
     translate, copy_toks = [], []
     toks = text.split()
     if tokenized: # one tok get one tag
-        toks_tagged = [is_copy_tok(tok) for tok in toks]
+        toks_tagged = [(tok, is_copy_tok(tok)) for tok in toks]
     else:
         # tok is sub split to look for patterns like emojis inside
         toks_tagged = [(subtok, tag) for tok in toks for subtok, tag in extract_copy_toks(tok)]
