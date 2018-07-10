@@ -96,20 +96,62 @@ emoji_codes = {169, 174, 8205, 8252, 8265, 8419, 8482, 8505, 8596, 8597, 8598, 8
                129505, 129506, 129507, 129508, 129509, 129510, 917602, 917603, 917605, 917607, 917612, 917614, 917619,
                917620, 917623, 917631}
 
-social_pat = re.compile(r'^(https?://|@[^@ ]+|#[^# ]+)')
-emoticons_pat = re.compile(r'^([;:]-?[()BDPoO83/*|\]])+$')
+social_pat = re.compile(r'^(https?://[^ ]+|@[^@ ]+|#[^# ]+|([;:]-?[()BDPoO83/*|\]])+)')
+#                Begin with(  URL   | @handle   | #hash | emoticons+                 )
 
 
 def is_copy_tok(tok):
-    return social_pat.match(tok) or \
-           emoticons_pat.match(tok) or \
-           all(ord(code) in emoji_codes for code in tok)
+    return social_pat.match(tok) or all(ord(code) in emoji_codes for code in tok)
 
 
-def filter_copy_toks(text, placeholder=None):
+def extract_copy_toks(tok):
+    """
+    Given a token, extract pieces of it which are to be copied.
+    For example a token can be a mixture of alphanumeric and emoji, emoticon
+    :param tok:
+    :return:
+    """
+
+    sub_toks = []
+    left = 0   # cursor
+    last = 0
+    while left < len(tok):
+        # check if this is a sequence of emoji
+        if ord(tok[left]) in emoji_codes:
+            right = left + 1
+            while right < len(tok) and ord(tok[right]) in emoji_codes:
+                right += 1
+
+            if left > last:  # normal boring tokens
+                sub_toks.append((tok[last:left], 0))
+            sub_toks.append((tok[left:right], 1))
+            last = left = right
+        else:
+            # check if URL or hashtag starts from here
+            match = social_pat.search(tok[left:])
+            if match:
+                if left > last:  # normal boring tokens
+                    sub_toks.append((tok[last:left], 0))
+                sub_toks.append((match.group(), 1))
+                left += len(match.group())
+                last = left
+            else:
+                # if none of the above them this is just a boring token
+                left += 1  # advance the left cursor
+    return sub_toks
+
+
+def filter_copy_toks(text, tokenized=False, placeholder=None):
     translate, copy_toks = [], []
-    for tok in text.split():
-        if is_copy_tok(tok):
+    toks = text.split()
+    if tokenized: # one tok get one tag
+        toks_tagged = [is_copy_tok(tok) for tok in toks]
+    else:
+        # tok is sub split to look for patterns like emojis inside
+        toks_tagged = [(subtok, tag) for tok in toks for subtok, tag in extract_copy_toks(tok)]
+
+    for tok, copy_tag in toks_tagged:
+        if copy_tag:
             if placeholder:
                 translate.append(placeholder)
             copy_toks.append(tok)
@@ -118,10 +160,10 @@ def filter_copy_toks(text, placeholder=None):
     return " ".join(translate), " ".join(copy_toks)
 
 
-def main(inp, out, placeholder=None):
+def main(inp, out, tokenized=False, placeholder=None):
     for line in inp:
         line = line.strip()
-        keep, off = filter_copy_toks(line, placeholder=placeholder)
+        keep, off = filter_copy_toks(line, tokenized=tokenized, placeholder=placeholder)
         out.write(f'{keep}\t{off}\n')
 
 
@@ -129,6 +171,8 @@ if __name__ == '__main__':
     p = argparse.ArgumentParser()
     p.add_argument('-i', '--inp', help='Input file. One sentence per line', default=sys.stdin)
     p.add_argument('-o', '--out', help='Output file. One sentence per line', default=sys.stdout)
+    p.add_argument('-t', '--tokenized', action='store_true', help='Text is tokenized, dont subsplit tokens',)
     p.add_argument('-p', '--placeholder', help='Insert this token in the place of removed copy tokens', default=None)
     args = vars(p.parse_args())
     main(**args)
+
